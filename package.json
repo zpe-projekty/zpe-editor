@@ -1,0 +1,14 @@
+{
+    "name": "editor",
+    "version": "0.1.0",
+    "type": "module",
+    "main": "src/editor.js",
+    "module": "build/editor.js",
+    "scripts": {
+        "build": "echo \"Building...\" && copy src\\editor.js build\\editor.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "description": ""
+}
