@@ -1,16 +1,29 @@
 {
     "include": [
-        "**/*"
+        "**/*",
+        "emulator/**/*",
+        "packages/duct-tape/**/*"
     ],
     "compilerOptions": {
         "target": "esnext",
         "module": "esnext",
-        "declaration": true,
+        "declaration": false,
         "sourceMap": true,
         "strict": true,
         "forceConsistentCasingInFileNames": true,
         "moduleResolution": "node",
         "outDir": "./build",
-        "rootDir": "./src",
+        "rootDirs": [
+            "./src",
+            "./emulator/build",
+        ],
+        "paths": {
+            "~/*": [
+                "./src/*"
+            ],
+            "duct-tape": [
+                "./packages/duct-tape/src/index.ts"
+            ]
+        }
     }
 }

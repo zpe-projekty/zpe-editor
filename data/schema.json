@@ -1,0 +1,70 @@
+{
+    "definitions": {
+        "styles": {
+            "classic": "Klasyczny",
+            "modern": "Nowoczesny",
+            "retro": "Retro"
+        }
+    },
+    "properties": {
+        "playTime": {
+            "type": "number",
+            "format": "integer",
+            "min": 1,
+            "max": 10000,
+            "label": "Całkowity czas gry (w minutach)"
+        },
+        "rebuses": {
+            "type": "object",
+            "properties": {
+                "numberOfRebusesToSolve": {
+                    "type": "number",
+                    "format": "integer",
+                    "min": 1,
+                    "label": "Liczba rebusów do rozwiązania"
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": {
+                        "easy": "łatwy",
+                        "medium": "średni",
+                        "hard": "trudny"
+                    },
+                    "label": "Tryb",
+                    "help": "Wybierz tryb gry. 'łatwy' - podpowiedzi do rebusów, 'średni' - bez podpowiedzi, 'trudny' - bez podpowiedzi i z ograniczonym czasem na rozwiązanie każdego rebusu."
+                },
+                "timeLimitPerRebus": {
+                    "type": "number",
+                    "label": "Limit czasu na rozwiązanie każdego rebusu (w minutach)",
+                    "help": "Dotyczy tylko trybu 'trudny'."
+                },
+                "rebuses": {
+                    "type": "array",
+                    "item": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "private": true
+                            },
+                            "enabled": {
+                                "type": "boolean",
+                                "label": "Włączony"
+                            },
+                            "style": {
+                                "type": "string",
+                                "enum": "styles",
+                                "label": "Styl rebusu"
+                            },
+                            "answer": {
+                                "type": "ref",
+                                "path": "scenario.json#/rebuses/${id}/answer",
+                                "label": "Odpowiedź"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

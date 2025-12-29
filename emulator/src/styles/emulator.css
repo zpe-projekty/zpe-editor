@@ -1,0 +1,24 @@
+* {
+    box-sizing: border-box;
+}
+body,
+html {
+    color: #212121;
+}
+body {
+    overflow-wrap: break-word;
+}
+
+body,
+html {
+    font-family: Noto Sans, Menlo, Monaco, Consolas, Courier New, monospace;
+    font-size: 16px;
+    line-height: 1.62;
+}
+
+#emulator-container {
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}

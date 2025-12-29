@@ -1,0 +1,37 @@
+{
+    "definitions": {
+        "styles": {
+            "classic": "Klasyczny",
+            "modern": "Nowoczesny",
+            "retro": "Retro"
+        }
+    },
+    "properties": {
+        "rebuses": {
+            "type": "array",
+            "item": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "private": true
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "label": "Włączony"
+                    },
+                    "style": {
+                        "type": "string",
+                        "enum": "styles",
+                        "label": "Styl rebusu"
+                    },
+                    "answer": {
+                        "type": "ref",
+                        "path": "scenario.json#/rebuses/[{id:${id}}]/answer",
+                        "label": "Odpowiedź"
+                    }
+                }
+            }
+        }
+    }
+}

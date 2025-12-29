@@ -13,7 +13,7 @@ define([], function () {
                 _api = api;
                 _api.addEditorTab("tab01", "Edycja");
             },
-            destroy: function () {},
+            destroy: function () { },
 
             initTab(tab, container, api) {
                 // Initialize the tab content

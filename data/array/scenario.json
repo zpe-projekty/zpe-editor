@@ -1,0 +1,9 @@
+{
+    "rebuses": [
+        { "id": "rebus1", "answer": "rebus1" },
+        { "id": "rebus2", "answer": "rebus2" },
+        { "id": "rebus3", "answer": "rebus3" },
+        { "id": "rebus4", "answer": "rebus4" },
+        { "id": "rebus5", "answer": "rebus5" }
+    ]
+}
