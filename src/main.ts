@@ -16,7 +16,7 @@ interface EngineEditor {
     getState(): State
 }
 
-interface ExerciseEditorApi {
+export interface ExerciseEditorApi {
     addEditorTab(tabId: string, name: string): ExerciseEditorApi;
     triggerStateSave(): Promise<void>;
     enginePath(path: string): string;
@@ -29,17 +29,17 @@ interface ExerciseEditorApi {
 }
 
 //TODO:
-// [ ] Czy init jest Promise?
+// [x] Czy init jest Promise? - TAK!
 // [ ] Czy setState jest wywoływany zawsze?
 // [ ] Czy addEditorTab można wywołać z setState?
 // [ ] Co dzieje się z defaultData jeżeli zostanie coś dodane/usunięte
 
-let editor: Editor | null = null;
-let _running = false;
 
 export function create() {
-    let _api = null;
+    let _api: ExerciseEditorApi | null = null;
     let _data: State = {};
+    let _running = false;
+    let editor: Editor | null = null;
 
     return {
         init(api: ExerciseEditorApi, options: EngineOptions) {
@@ -54,7 +54,7 @@ export function create() {
             if (tabId === "tab_data") {
                 console.log("Initializing tab:", tabId);
                 container.classList.add("oseditor-nmzzpp1hty");
-                editor = new Editor(container as HTMLElement);
+                editor = new Editor(container as HTMLElement, api);
             }
         },
         destroyTab(tabId: string, container: Element) {

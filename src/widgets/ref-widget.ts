@@ -1,15 +1,16 @@
 import { DOMNode } from "duct-tape";
-import { SchemaElementRef, SchemaElementString } from "~/editor";
+import { Editor, SchemaElementRef, SchemaElementString } from "~/editor";
+import { Widget } from "./widget";
 
 const cache: Map<string, object> = new Map();
 
-export class RefWidget extends DOMNode<"div"> {
+export class RefWidget extends Widget {
     private _schema: SchemaElementRef;
     private _data: Record<string, any>;
     private _ref: DOMNode<"div">;
 
-    constructor(key: string, schema: SchemaElementRef, data: Record<string, any>) {
-        super("div");
+    constructor(editor: Editor, key: string, schema: SchemaElementRef, data: Record<string, any>) {
+        super(editor);
 
         this._schema = schema;
         this._data = data;
@@ -39,7 +40,7 @@ export class RefWidget extends DOMNode<"div"> {
                 return;
             }
 
-            fetch(path).then(async (response) => {
+            fetch(this._editor.api.enginePath(path)).then(async (response) => {
                 if (!response.ok) {
                     reject(new Error(`Failed to fetch file: ${path}`));
                     return;
@@ -48,6 +49,7 @@ export class RefWidget extends DOMNode<"div"> {
                 cache.set(path, data);
                 resolve(data);
             }).catch((error) => {
+                console.error(`Error fetching file '${path}':`, error);
                 reject(error);
             });
         });

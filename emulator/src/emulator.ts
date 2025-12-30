@@ -2,6 +2,12 @@ import "./styles/emulator.css";
 
 type StateData = Record<string, any>;
 
+interface EngineData {
+    editor: {
+        defaultData: StateData;
+    };
+}
+
 type Manifest = Record<string, any>;
 
 interface EngineEditor {
@@ -41,11 +47,15 @@ interface TabData {
 
 const _tabs = new Map<string, TabData>();
 let _firstTabId: string | null = null;
+let _engineData = {
+    editor: {
+        defaultData: {}
+    }
+}
 
 window.define = function define(fn: () => any) {
     const entry = fn().default() as EngineEditor;
     const api: ExerciseEditorApi = {
-        enginePath: (path: string) => path,
         addEditorTab: (tabId: string, name: string) => {
             if (!_firstTabId) {
                 _firstTabId = tabId;
@@ -69,15 +79,21 @@ window.define = function define(fn: () => any) {
             _tabs.set(tabId, { id: tabId, name, container });
 
             return api;
-        }
+        },
+        triggerStateSave: async () => {
+            console.log("State save triggered");
+            const state = entry.getState();
+            console.log("Current state:", state);
+        },
+        enginePath: (path: string) => path,
+        dataPath: (path: string) => path,
     } as any;
     const options = {} as any;
 
     entry.init(api, options);
 
-    fetch('defaultData.json').then(async (response) => {
-        const defaultData = await response.json() as StateData;
-        entry.setState(defaultData);
+    fetch('engine.json').then(async (response) => {
+        _engineData = await response.json() as EngineData;
     }).then(() => {
         _tabs.forEach((tab) => {
             entry.initTab(tab.id, tab.container, api);
@@ -89,5 +105,7 @@ window.define = function define(fn: () => any) {
                 firstTab.container.style.display = "block";
             }
         }
+
+        entry.setState(_engineData.editor.defaultData);
     });
 };

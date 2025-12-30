@@ -1,0 +1,26 @@
+{
+    "entry": "entry.js",
+    "stateful": true,
+    "useWebGL": true,
+    "editor": {
+        "entry": "editor.js",
+        "defaultData": {
+            "rebuses": [
+                { "id": "rebus1", "enabled": true, "style": "classic" },
+                { "id": "rebus2", "enabled": true, "style": "modern" },
+                { "id": "rebus3", "enabled": false, "style": "retro" },
+                { "id": "rebus4", "enabled": true, "style": "classic" },
+                { "id": "rebus5", "enabled": false, "style": "modern" }
+            ]
+        },
+        "demoData": {
+            "rebuses": [
+                { "id": "rebus1", "enabled": true, "style": "classic" },
+                { "id": "rebus2", "enabled": true, "style": "modern" },
+                { "id": "rebus3", "enabled": false, "style": "retro" },
+                { "id": "rebus4", "enabled": true, "style": "classic" },
+                { "id": "rebus5", "enabled": false, "style": "modern" }
+            ]
+        }
+    }
+}

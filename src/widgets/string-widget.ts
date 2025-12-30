@@ -1,13 +1,14 @@
 import { create, DOMNode } from "duct-tape";
-import { SchemaElementString } from "~/editor";
+import { Editor, SchemaElementString } from "~/editor";
+import { Widget } from "./widget";
 
-export class StringWidget extends DOMNode<"div"> {
+export class StringWidget extends Widget {
     private _schema: SchemaElementString;
     private _data: Record<string, any>;
     private _input: DOMNode<"input"> | DOMNode<"select">;
 
-    constructor(key: string, schema: SchemaElementString, data: Record<string, any>) {
-        super("div");
+    constructor(editor: Editor, key: string, schema: SchemaElementString, data: Record<string, any>) {
+        super(editor);
 
         this._schema = schema;
         this._data = data;
@@ -39,8 +40,9 @@ export class StringWidget extends DOMNode<"div"> {
                 .style("display", "block")
                 .style("marginBottom", "8px")
                 .property("value", this._data[key] || "")
-                .on("change", () => {
+                .on("input", () => {
                     this._data[key] = this._input.property("value");
+                    this._editor.saveState();
                 });
         }
 

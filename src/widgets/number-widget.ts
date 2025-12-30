@@ -1,5 +1,6 @@
 import { DOMNode } from "duct-tape";
-import { SchemaElementNumber } from "~/editor";
+import { Editor, SchemaElementNumber } from "~/editor";
+import { Widget } from "./widget";
 
 enum NumberFormat {
     Integer = "integer",
@@ -7,7 +8,7 @@ enum NumberFormat {
     Number = "number"
 }
 
-export class NumberWidget extends DOMNode<"div"> {
+export class NumberWidget extends Widget {
     private _schema: SchemaElementNumber;
     private _format: NumberFormat = NumberFormat.Number;
     private _min: number = -Infinity;
@@ -16,9 +17,10 @@ export class NumberWidget extends DOMNode<"div"> {
     private _input: DOMNode<"input">;
     private _messageNode: DOMNode<"div">;
 
-    constructor(key: string, schema: SchemaElementNumber, data: Record<string, any>) {
-        super("div");
+    constructor(editor: Editor, key: string, schema: SchemaElementNumber, data: Record<string, any>) {
+        super(editor);
 
+        this._editor = editor;
         this._schema = schema;
         this._data = data;
         this.class("number-component");
@@ -40,7 +42,7 @@ export class NumberWidget extends DOMNode<"div"> {
             .style("display", "block")
             .style("marginBottom", "8px")
             .property("value", this._data[key] || 0)
-            .on("change", () => {
+            .on("input", () => {
                 const value = this._input.property("value");
 
                 if (value === undefined || value === "") {
@@ -72,7 +74,7 @@ export class NumberWidget extends DOMNode<"div"> {
                 }
 
                 this._data[key] = value;
-                // this._input.element.value = value;
+                this._editor.saveState();
             });
 
         const labelNode = new DOMNode<"label">("label")

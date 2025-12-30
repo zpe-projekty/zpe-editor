@@ -1,5 +1,6 @@
 import { Disposable, DOMNode } from "duct-tape";
 import { ObjectWidget } from "./widgets/object-widget";
+import { ExerciseEditorApi } from "./main";
 
 export interface Schema {
     definitions: Record<string, any>;
@@ -57,13 +58,23 @@ type Data = Record<string, any>;
 export class Editor extends Disposable {
     private _container: HTMLElement;
     private _data: Data = {};
+    private _api: ExerciseEditorApi;
     private _types: Record<string, any> = {};
 
-    constructor(container: HTMLElement) {
+    constructor(container: HTMLElement, api: ExerciseEditorApi) {
         super();
         this._container = container;
+        this._api = api;
 
         console.log("Editor created");
+    }
+
+    get api(): ExerciseEditorApi {
+        return this._api;
+    }
+
+    saveState(): void {
+        this._api.triggerStateSave();
     }
 
     async run(data: Data): Promise<void> {
@@ -71,7 +82,7 @@ export class Editor extends Disposable {
 
         return new Promise((resolve) => {
             console.log("Editor running...");
-            fetch("schema.json").then(async (response) => {
+            fetch(this._api.enginePath("schema.json")).then(async (response) => {
                 const schema = await response.json() as Schema;
                 console.log("Schema loaded:", schema);
 
@@ -82,8 +93,13 @@ export class Editor extends Disposable {
                     this.replaceDefinitions(propertiesSchema);
                 }
 
-                new ObjectWidget("Root", propertiesSchema, this._data).mount(this._container);
+                this.register(
+                    new ObjectWidget(this, "Root", propertiesSchema, this._data).mount(this._container)
+                );
 
+                resolve();
+            }).catch((error) => {
+                console.error("Error loading schema:", error);
                 resolve();
             });
         });

@@ -1,15 +1,17 @@
 import { create, DOMNode } from "duct-tape";
-import { SchemaElementArray, SchemaElementObject } from "~/editor";
+import { Editor, SchemaElementArray, SchemaElementObject } from "~/editor";
 import { ObjectWidget } from "./object-widget";
+import { Widget } from "./widget";
 
-export class ArrayWidget extends DOMNode<"div"> {
+export class ArrayWidget extends Widget {
     private _schema: SchemaElementArray;
     private _data: any[];
     private _itemsContainer: DOMNode<"div">;
 
-    constructor(key: string, schema: SchemaElementArray, data: any[]) {
-        super("div");
+    constructor(editor: Editor, key: string, schema: SchemaElementArray, data: any[]) {
+        super(editor);
 
+        this._editor = editor;
         this._schema = schema;
         this._data = data;
         this.class("array-component");
@@ -32,7 +34,7 @@ export class ArrayWidget extends DOMNode<"div"> {
             this._itemsContainer.append(item);
 
             if (this._schema.item.type === "object") {
-                item.append(new ObjectWidget(`Element #${index + 1}`, this._schema.item as SchemaElementObject, data));
+                item.append(new ObjectWidget(this._editor, `Element #${index + 1}`, this._schema.item as SchemaElementObject, data));
             } else {
                 console.warn(`Unsupported array item type: ${this._schema.item.type}`);
             }
