@@ -34,7 +34,8 @@ interface ExerciseEditorApi {
 // [ ] Czy addEditorTab można wywołać z setState?
 // [ ] Co dzieje się z defaultData jeżeli zostanie coś dodane/usunięte
 
-var editor: Editor | null = null;
+let editor: Editor | null = null;
+let _running = false;
 
 export function create() {
     let _api = null;
@@ -53,8 +54,7 @@ export function create() {
             if (tabId === "tab_data") {
                 console.log("Initializing tab:", tabId);
                 container.classList.add("oseditor-nmzzpp1hty");
-                editor = new Editor(container as HTMLElement, _data);
-                editor.run();
+                editor = new Editor(container as HTMLElement);
             }
         },
         destroyTab(tabId: string, container: Element) {
@@ -65,7 +65,18 @@ export function create() {
         },
 
         setState(stateData: State) {
-            _data = stateData;
+            if (_running) {
+                console.warn("setState called while editor is already running. This may lead to inconsistent state.");
+                return;
+            }
+
+            if (editor) {
+                _data = stateData;
+                editor.run(_data);
+                _running = true;
+            } else {
+                console.warn("Editor instance is not initialized yet.");
+            }
         },
         getState(): State {
             return _data;

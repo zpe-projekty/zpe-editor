@@ -59,15 +59,16 @@ export class Editor extends Disposable {
     private _data: Data = {};
     private _types: Record<string, any> = {};
 
-    constructor(container: HTMLElement, data: Data) {
+    constructor(container: HTMLElement) {
         super();
         this._container = container;
-        this._data = data;
 
         console.log("Editor created");
     }
 
-    async run(): Promise<void> {
+    async run(data: Data): Promise<void> {
+        this._data = data;
+
         return new Promise((resolve) => {
             console.log("Editor running...");
             fetch("schema.json").then(async (response) => {

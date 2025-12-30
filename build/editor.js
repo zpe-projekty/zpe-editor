@@ -1576,13 +1576,13 @@ class Editor extends Disposable {
     _container;
     _data = {};
     _types = {};
-    constructor(container, data) {
+    constructor(container) {
         super();
         this._container = container;
-        this._data = data;
         console.log("Editor created");
     }
-    async run() {
+    async run(data) {
+        this._data = data;
         return new Promise((resolve) => {
             console.log("Editor running...");
             fetch("schema.json").then(async (response) => {
@@ -1674,7 +1674,8 @@ var update = injectStylesIntoStyleTag_default()(styles/* default */.A, options);
 // [ ] Czy setState jest wywoływany zawsze?
 // [ ] Czy addEditorTab można wywołać z setState?
 // [ ] Co dzieje się z defaultData jeżeli zostanie coś dodane/usunięte
-var editor = null;
+let editor = null;
+let _running = false;
 function main_create() {
     let _api = null;
     let _data = {};
@@ -1690,8 +1691,7 @@ function main_create() {
             if (tabId === "tab_data") {
                 console.log("Initializing tab:", tabId);
                 container.classList.add("oseditor-nmzzpp1hty");
-                editor = new Editor(container, _data);
-                editor.run();
+                editor = new Editor(container);
             }
         },
         destroyTab(tabId, container) {
@@ -1701,7 +1701,18 @@ function main_create() {
             }
         },
         setState(stateData) {
-            _data = stateData;
+            if (_running) {
+                console.warn("setState called while editor is already running. This may lead to inconsistent state.");
+                return;
+            }
+            if (editor) {
+                _data = stateData;
+                editor.run(_data);
+                _running = true;
+            }
+            else {
+                console.warn("Editor instance is not initialized yet.");
+            }
         },
         getState() {
             return _data;
