@@ -22,3 +22,26 @@ html {
     flex-direction: column;
     height: 100vh;
 }
+
+#emulator-tabs {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 10px;
+    justify-content: end;
+}
+
+.demo-button {
+    background-color: #007acc;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    height: 36px;
+    min-width: 100px;
+}
+
+.demo-button:hover {
+    background-color: #005fa3;
+}

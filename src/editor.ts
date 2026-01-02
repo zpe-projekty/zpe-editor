@@ -60,6 +60,7 @@ export class Editor extends Disposable {
     private _data: Data = {};
     private _api: ExerciseEditorApi;
     private _types: Record<string, any> = {};
+    private _rootWidget: ObjectWidget | null = null;
 
     constructor(container: HTMLElement, api: ExerciseEditorApi) {
         super();
@@ -78,6 +79,12 @@ export class Editor extends Disposable {
     }
 
     async run(data: Data): Promise<void> {
+        if (this._rootWidget) {
+            this.unregister(this._rootWidget);
+            this._rootWidget.dispose();
+            this._rootWidget = null;
+        }
+
         this._data = data;
 
         return new Promise((resolve) => {
@@ -93,7 +100,7 @@ export class Editor extends Disposable {
                     this.replaceDefinitions(propertiesSchema);
                 }
 
-                this.register(
+                this._rootWidget = this.register(
                     new ObjectWidget(this, "Root", propertiesSchema, this._data).mount(this._container)
                 );
 

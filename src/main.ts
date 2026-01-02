@@ -38,7 +38,6 @@ export interface ExerciseEditorApi {
 export function create() {
     let _api: ExerciseEditorApi | null = null;
     let _data: State = {};
-    let _running = false;
     let editor: Editor | null = null;
 
     return {
@@ -65,15 +64,9 @@ export function create() {
         },
 
         setState(stateData: State) {
-            if (_running) {
-                console.warn("setState called while editor is already running. This may lead to inconsistent state.");
-                return;
-            }
-
             if (editor) {
                 _data = stateData;
                 editor.run(_data);
-                _running = true;
             } else {
                 console.warn("Editor instance is not initialized yet.");
             }
@@ -85,58 +78,3 @@ export function create() {
 }
 
 export default create;
-
-// let _data = {
-//     extraValue: 42,
-//     message: "Hello, Editor!"
-// };
-
-// let _api = null;
-// let _input = null;
-
-// return function () {
-//     return {
-//         init: function (api, options) {
-//             _api = api;
-//             _api.addEditorTab("tab01", "Edycja");
-//         },
-//         destroy: function () {},
-
-//         initTab(tab, container, api) {
-//             // Initialize the tab content
-//             console.log("Initializing tab:", tab);
-
-//             if (tab == "tab01") {
-//                 _input = document.createElement("input");
-//                 _input.type = "text";
-//                 _input.value = _data.message;
-//                 _input.addEventListener("input", () => {
-//                     _data.message = _input.value;
-//                 });
-//                 _input.addEventListener("change", () => {
-//                     _api.triggerStateSave().then(() => {
-//                         console.log("State saved from editor tab.");
-//                     });
-//                 });
-//                 container.appendChild(_input);
-//             }
-//         },
-//         destroyTab(tab, container) {
-//             // Clean up the tab content
-//             console.log("Destroying tab:", tab);
-//             if (tab == "tab01" && _input) {
-//                 container.removeChild(_input);
-//                 _input = null;
-//             }
-//         },
-
-//         setState(stateData) {
-//             console.log("Setting state in editor:", stateData);
-//             _data = { ..._data, ...stateData };
-//         },
-//         getState() {
-//             console.log("Getting state from editor");
-//             return _data;
-//         }
-//     };
-// };

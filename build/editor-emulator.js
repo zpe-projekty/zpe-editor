@@ -44,7 +44,6 @@ module.exports = insertStyleElement;
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   A: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* unused harmony export emulator-container */
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(935);
@@ -72,16 +71,37 @@ html {
     line-height: 1.62;
 }
 
-#H5zlwG0PrMxqMFLA92Tv {
+#emulator-container {
     margin: 10px;
     display: flex;
     flex-direction: column;
     height: 100vh;
 }
-`, "",{"version":3,"sources":["webpack://./emulator/src/styles/emulator.css"],"names":[],"mappings":"AAAA;IACI,sBAAsB;AAC1B;AACA;;IAEI,cAAc;AAClB;AACA;IACI,yBAAyB;AAC7B;;AAEA;;IAEI,uEAAuE;IACvE,eAAe;IACf,iBAAiB;AACrB;;AAEA;IACI,YAAY;IACZ,aAAa;IACb,sBAAsB;IACtB,aAAa;AACjB","sourcesContent":["* {\n    box-sizing: border-box;\n}\nbody,\nhtml {\n    color: #212121;\n}\nbody {\n    overflow-wrap: break-word;\n}\n\nbody,\nhtml {\n    font-family: Noto Sans, Menlo, Monaco, Consolas, Courier New, monospace;\n    font-size: 16px;\n    line-height: 1.62;\n}\n\n#emulator-container {\n    margin: 10px;\n    display: flex;\n    flex-direction: column;\n    height: 100vh;\n}\n"],"sourceRoot":""}]);
-// Exports
-var _1 = (/* unused pure expression or super */ null && (`H5zlwG0PrMxqMFLA92Tv`));
 
+#emulator-tabs {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 10px;
+    justify-content: end;
+}
+
+.demo-button {
+    background-color: #007acc;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    height: 36px;
+    min-width: 100px;
+}
+
+.demo-button:hover {
+    background-color: #005fa3;
+}
+`, "",{"version":3,"sources":["webpack://./emulator/src/styles/emulator.css"],"names":[],"mappings":"AAAA;IACI,sBAAsB;AAC1B;AACA;;IAEI,cAAc;AAClB;AACA;IACI,yBAAyB;AAC7B;;AAEA;;IAEI,uEAAuE;IACvE,eAAe;IACf,iBAAiB;AACrB;;AAEA;IACI,YAAY;IACZ,aAAa;IACb,sBAAsB;IACtB,aAAa;AACjB;;AAEA;IACI,aAAa;IACb,mBAAmB;IACnB,SAAS;IACT,mBAAmB;IACnB,oBAAoB;AACxB;;AAEA;IACI,yBAAyB;IACzB,YAAY;IACZ,YAAY;IACZ,iBAAiB;IACjB,eAAe;IACf,kBAAkB;IAClB,YAAY;IACZ,gBAAgB;AACpB;;AAEA;IACI,yBAAyB;AAC7B","sourcesContent":["* {\n    box-sizing: border-box;\n}\nbody,\nhtml {\n    color: #212121;\n}\nbody {\n    overflow-wrap: break-word;\n}\n\nbody,\nhtml {\n    font-family: Noto Sans, Menlo, Monaco, Consolas, Courier New, monospace;\n    font-size: 16px;\n    line-height: 1.62;\n}\n\n#emulator-container {\n    margin: 10px;\n    display: flex;\n    flex-direction: column;\n    height: 100vh;\n}\n\n#emulator-tabs {\n    display: flex;\n    flex-direction: row;\n    gap: 10px;\n    margin-bottom: 10px;\n    justify-content: end;\n}\n\n.demo-button {\n    background-color: #007acc;\n    color: white;\n    border: none;\n    padding: 5px 10px;\n    cursor: pointer;\n    border-radius: 3px;\n    height: 36px;\n    min-width: 100px;\n}\n\n.demo-button:hover {\n    background-color: #005fa3;\n}\n"],"sourceRoot":""}]);
+// Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
 
@@ -528,8 +548,9 @@ const _tabs = new Map();
 let _firstTabId = null;
 let _engineData = {
     editor: {
-        defaultData: {}
-    }
+        defaultData: {},
+        demoData: {},
+    },
 };
 window.define = function define(fn) {
     const entry = fn().default();
@@ -550,7 +571,14 @@ window.define = function define(fn) {
                 });
                 container.style.display = "block";
             };
-            document.getElementById("emulator-tabs")?.appendChild(tabButton);
+            // document.getElementById("emulator-tabs")?.appendChild(tabButton);
+            const demoButton = document.createElement("button");
+            demoButton.innerText = `DEMO`;
+            demoButton.classList.add("demo-button");
+            demoButton.onclick = () => {
+                entry.setState(_engineData.editor.demoData);
+            };
+            document.getElementById("emulator-tabs")?.appendChild(demoButton);
             _tabs.set(tabId, { id: tabId, name, container });
             return api;
         },

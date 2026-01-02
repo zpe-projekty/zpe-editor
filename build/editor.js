@@ -513,15 +513,772 @@ __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  create: () => (/* binding */ create),
+  create: () => (/* binding */ main_create),
   "default": () => (/* binding */ main)
 });
 
+;// ./packages/duct-tape/build/common.js
+function isObject(value) {
+    return (typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value) &&
+        !(value instanceof RegExp) &&
+        !(value instanceof Date));
+}
+function isFunction(value) {
+    return value instanceof Function;
+}
+function isDefined(value) {
+    return value !== undefined;
+}
+function common_hasOwnProperty(value, name) {
+    return typeof value === "object" && Object.hasOwn(value, name);
+}
+function hasOwnFunction(value, name) {
+    return isObject(value) && isFunction(value[name]);
+}
+function isEmpty(value) {
+    if (value === undefined)
+        return true;
+    if (value === "")
+        return true;
+    if (value === null)
+        return true;
+    if (value === 0)
+        return true;
+    return false;
+}
+function isTrue(value) {
+    if (value === true)
+        return true;
+    if (value === "true")
+        return true;
+    if (value === "yes")
+        return true;
+    if (value === "on")
+        return true;
+    if (value === "t")
+        return true;
+    if (value === 1)
+        return true;
+    if (value === "1")
+        return true;
+    return false;
+}
+function isFalse(value) {
+    if (value === false)
+        return true;
+    if (value === "false")
+        return true;
+    if (value === "no")
+        return true;
+    if (value === "off")
+        return true;
+    if (value === "f")
+        return true;
+    if (value === 0)
+        return true;
+    if (value === "0")
+        return true;
+    return false;
+}
+function mergeDeep(target, ...sources) {
+    if (!sources.length)
+        return target;
+    const source = sources.shift();
+    if (isObject(target) && isObject(source)) {
+        for (const key in source) {
+            if (isObject(source[key])) {
+                if (!target[key])
+                    Object.assign(target, { [key]: {} });
+                mergeDeep(target[key], source[key]);
+            }
+            else {
+                Object.assign(target, { [key]: source[key] });
+            }
+        }
+    }
+    return mergeDeep(target, ...sources);
+}
+//# sourceMappingURL=common.js.map
+;// ./packages/duct-tape/build/disposable.js
+
+function createDisposeFn(fn) {
+    return fn;
+}
+class Disposable {
+    _disposed;
+    _disposables = new Map();
+    constructor() {
+        this._disposed = false;
+    }
+    dispose() {
+        if (this._disposed)
+            return;
+        try {
+            const disposables = Array.from(this._disposables.entries()).reverse();
+            for (const [, fn] of disposables) {
+                try {
+                    fn();
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            }
+            this._disposables.clear();
+        }
+        finally {
+            this._disposed = true;
+        }
+    }
+    get disposed() {
+        return this._disposed;
+    }
+    register(o) {
+        if (this._disposables.has(o)) {
+            console.warn(`Cannot register ${o?.constructor?.name ?? o}. This object is already registered.`);
+            return o;
+        }
+        if (isObject(o)) {
+            if (hasOwnFunction(o, "dispose")) {
+                this._disposables.set(o, () => o.dispose());
+            }
+            else if (hasOwnFunction(o, "destroy")) {
+                this._disposables.set(o, () => o.destroy());
+            }
+            else if (hasOwnFunction(o, "remove")) {
+                this._disposables.set(o, () => o.remove());
+            }
+            else {
+                console.warn(`The object ${o?.constructor?.name ?? o} has an unknown release function!`);
+            }
+        }
+        else if (isFunction(o)) {
+            this._disposables.set(o, o);
+        }
+        else {
+            console.warn(`Cannot register ${o}. This object does not have a release function!`);
+        }
+        return o;
+    }
+    unregister(o) {
+        if (this._disposables.has(o)) {
+            this._disposables.delete(o);
+        }
+        else {
+            console.warn("Object ${o} doesn't exist in register.");
+        }
+    }
+}
+class DummyDisposable extends Disposable {
+    constructor() {
+        super();
+    }
+}
+//# sourceMappingURL=disposable.js.map
+;// ./packages/duct-tape/build/to.js
+
+function toBoolean(value, defaultValue = false) {
+    if (value instanceof value_Value) {
+        value = value.get();
+    }
+    if (typeof value === "boolean") {
+        return value;
+    }
+    else if (typeof value === "string") {
+        const v = value.toLowerCase();
+        if (v === "true" || v === "1" || v === "yes" || v === "on") {
+            return true;
+        }
+        else if (v === "false" || v === "0" || v === "no" || v === "off") {
+            return false;
+        }
+    }
+    else if (typeof value === "number") {
+        return value !== 0;
+    }
+    return defaultValue;
+}
+function toNumber(value, defaultValue = 0) {
+    if (value instanceof Value) {
+        value = value.get();
+    }
+    if (typeof value === "number") {
+        return value;
+    }
+    else if (typeof value === "string") {
+        const v = parseFloat(value);
+        return isNaN(v) ? defaultValue : v;
+    }
+    else if (typeof value === "boolean") {
+        return value ? 1 : 0;
+    }
+    return defaultValue;
+}
+function to_toString(value, defaultValue = "") {
+    if (value instanceof Value) {
+        value = value.get();
+    }
+    if (typeof value === "string") {
+        return value;
+    }
+    else if (typeof value === "number" || typeof value === "boolean") {
+        return value.toString();
+    }
+    return defaultValue;
+}
+//# sourceMappingURL=to.js.map
+;// ./packages/duct-tape/build/value.js
+
+
+
+function createValue(value, register) {
+    return new ValueStore(value, register);
+}
+class value_Value extends Disposable {
+    equal(test, register) {
+        let transform;
+        if (test instanceof Function) {
+            transform = test;
+        }
+        else {
+            transform = (v) => v === test;
+        }
+        const transformer = new ValueObserver(this, transform);
+        if (register) {
+            register.register(transformer);
+        }
+        return transformer;
+    }
+    notEqual(test, register) {
+        let transform;
+        if (typeof test === "string") {
+            transform = (v) => v !== test;
+        }
+        else {
+            transform = (value) => !test(value);
+        }
+        const transformer = new ValueObserver(this, transform);
+        if (register) {
+            register.register(transformer);
+        }
+        return transformer;
+    }
+    format(formatter, register) {
+        const transformer = new ValueObserver(this, formatter);
+        if (register) {
+            register.register(transformer);
+        }
+        return transformer;
+    }
+    map(transformerFn, register) {
+        const transformer = new ValueObserver(this, transformerFn);
+        if (register) {
+            register.register(transformer);
+        }
+        return transformer;
+    }
+    mapBoolean(trueValue, falseValue, register) {
+        const transformer = new ValueObserver(this, (value) => {
+            if (toBoolean(value) === true) {
+                return trueValue;
+            }
+            else {
+                return falseValue;
+            }
+        });
+        if (register) {
+            register.register(transformer);
+        }
+        return transformer;
+    }
+    not(register) {
+        const transformer = new ValueObserver(this, (value) => !toBoolean(value));
+        if (register) {
+            register.register(transformer);
+        }
+        return transformer;
+    }
+    and(other, register) {
+        const transformer = new ValueLogicObserver(this, other, (a, b) => toBoolean(a) && toBoolean(b));
+        if (register) {
+            register.register(transformer);
+        }
+        return transformer;
+    }
+    or(other, register) {
+        const transformer = new ValueLogicObserver(this, other, (a, b) => toBoolean(a) || toBoolean(b));
+        if (register) {
+            register.register(transformer);
+        }
+        return transformer;
+    }
+}
+function isValue(object) {
+    return object instanceof value_Value;
+}
+class ValueStore extends value_Value {
+    listeners = [];
+    value;
+    initValue;
+    prev;
+    _register;
+    constructor(value, register) {
+        super();
+        this._register = register;
+        this.value = value;
+        this.initValue = value;
+        this.prev = undefined;
+        if (register) {
+            register.register(this);
+        }
+    }
+    dispose() {
+        if (this.disposed)
+            return;
+        this.listeners.splice(0, this.listeners.length);
+        if (this._register) {
+            this._register.unregister(this);
+            this._register = undefined;
+        }
+        super.dispose();
+    }
+    subscribe(callback, scope = this) {
+        const handle = {
+            callback,
+            scope
+        };
+        this.listeners.push(handle);
+        this.deliveryValueToSubscriber(handle, this.value, this.prev);
+        return () => {
+            this.listeners.splice(this.listeners.indexOf(handle), 1);
+        };
+    }
+    set(value) {
+        this.prev = this.get();
+        if (this.value !== value && value !== undefined && value !== null && typeof value === typeof this.value) {
+            if (Array.isArray(this.value)) {
+                this.value = [...value];
+            }
+            else if (typeof this.value === "object") {
+                this.value = mergeDeep(this.value, value);
+            }
+            else {
+                this.value = value;
+            }
+            this.deliveryValue(this.value, this.prev);
+        }
+    }
+    get() {
+        if (Array.isArray(this.value)) {
+            return [...this.value];
+        }
+        else if (typeof this.value === "object") {
+            return mergeDeep({}, this.value);
+        }
+        return this.value;
+    }
+    toString() {
+        return this.value === undefined || this.value === null ? "undefined" : this.value.toString();
+    }
+    deliveryValue(value, prev) {
+        for (const handle of this.listeners) {
+            this.deliveryValueToSubscriber(handle, value, prev);
+        }
+    }
+    deliveryValueToSubscriber(handle, value, prev) {
+        handle.callback.call(handle.scope, value, prev);
+    }
+}
+class ValueObserver extends value_Value {
+    listeners = [];
+    watch;
+    prev;
+    value;
+    _transform;
+    _unsubscribe = null;
+    constructor(watch, transform) {
+        super();
+        this.watch = watch;
+        this._transform = transform;
+        this.value = this._transform(this.watch.get());
+        this._unsubscribe = this.watch.subscribe((value) => {
+            const newValue = this._transform(value);
+            if (this.value !== newValue) {
+                this.prev = this.value;
+                this.value = newValue;
+                this.deliverValue(this.value, this.prev);
+            }
+        });
+    }
+    dispose() {
+        if (this.disposed)
+            return;
+        this.watch = undefined;
+        this._unsubscribe?.();
+        this.listeners.splice(0, this.listeners.length);
+        super.dispose();
+    }
+    subscribe(callback, scope = this) {
+        const handle = {
+            callback,
+            scope
+        };
+        this.listeners.push(handle);
+        this.deliverValueToSubscriber(handle, this.value, this.prev);
+        return () => {
+            this.listeners.splice(this.listeners.indexOf(handle), 1);
+        };
+    }
+    get() {
+        return this.value;
+    }
+    toString() {
+        return this.watch?.toString() || "";
+    }
+    get subscribersLength() {
+        return this.listeners.length;
+    }
+    deliverValue(value, prev) {
+        for (const handle of this.listeners) {
+            this.deliverValueToSubscriber(handle, value, prev);
+        }
+    }
+    deliverValueToSubscriber(handle, value, prev) {
+        handle.callback.call(handle.scope, value, prev);
+    }
+}
+class ValueLogicObserver extends value_Value {
+    listeners = [];
+    watch1;
+    watch2;
+    prev;
+    value;
+    transform;
+    constructor(watch1, watch2, transform) {
+        super();
+        this.watch1 = watch1;
+        this.watch2 = watch2;
+        this.transform = transform;
+        this.value = this.transform(this.watch1.get(), this.watch2.get());
+        watch1.subscribe((value) => {
+            const newValue = this.transform(value, watch2.get());
+            if (this.value !== newValue) {
+                this.prev = this.value;
+                this.value = newValue;
+                this.deliverValue(this.value, this.prev);
+            }
+        });
+        watch2.subscribe((value) => {
+            const newValue = this.transform(watch1.get(), value);
+            if (this.value !== newValue) {
+                this.prev = this.value;
+                this.value = newValue;
+                this.deliverValue(this.value, this.prev);
+            }
+        });
+    }
+    dispose() {
+        if (this.disposed)
+            return;
+        this.watch1 = undefined;
+        this.watch2 = undefined;
+        this.listeners.splice(0, this.listeners.length);
+        super.dispose();
+    }
+    subscribe(callback, scope = this) {
+        const handle = {
+            callback,
+            scope
+        };
+        this.listeners.push(handle);
+        this.deliverValueToSubscriber(handle, this.value, this.prev);
+        return () => {
+            this.listeners.splice(this.listeners.indexOf(handle), 1);
+        };
+    }
+    get() {
+        return this.value;
+    }
+    toString() {
+        return `${this.watch1?.toString()} ${this.watch2?.toString()}`;
+    }
+    get subscribersLength() {
+        return this.listeners.length;
+    }
+    deliverValue(value, prev) {
+        for (const handle of this.listeners) {
+            this.deliverValueToSubscriber(handle, value, prev);
+        }
+    }
+    deliverValueToSubscriber(handle, value, prev) {
+        handle.callback.call(handle.scope, value, prev);
+    }
+}
+//# sourceMappingURL=value.js.map
+;// ./packages/duct-tape/build/dom.js
+
+
+function create(selector, register) {
+    const dom = DOMNode.create(selector, register);
+    return dom;
+}
+class DOMNode extends Disposable {
+    _element;
+    _events = new Map();
+    _register;
+    static create(selector, register) {
+        const dom = new DOMNode(selector, register);
+        return dom;
+    }
+    constructor(selector, register) {
+        super();
+        this._register = register;
+        const match = selector.split(":");
+        if (match.length === 1) {
+            this._element = document.createElement(selector);
+        }
+        else if (match.length === 2) {
+            const namespace = match[0];
+            const tagName = match[1];
+            this._element = document.createElementNS(namespace, tagName);
+        }
+        else {
+            throw new Error("Invalid selector");
+        }
+        if (this._register) {
+            this._register.register(this);
+        }
+    }
+    dispose() {
+        if (this._disposed) {
+            return;
+        }
+        this._element.remove();
+        if (this._register) {
+            this._register.unregister(this);
+            this._register = undefined;
+        }
+        super.dispose();
+    }
+    attr(name, value) {
+        if (value instanceof value_Value) {
+            this.register(value.subscribe((val) => {
+                this._element.setAttribute(name, String(val));
+            }));
+        }
+        else {
+            this._element.setAttribute(name, String(value));
+        }
+        return this;
+    }
+    property(name, value) {
+        if (value === undefined) {
+            return this._element[name];
+        }
+        if (value instanceof value_Value) {
+            this.register(value.subscribe((val) => {
+                this._element[name] = val;
+            }));
+        }
+        else {
+            this._element[name] = value;
+        }
+        return this;
+    }
+    style(name, value) {
+        if (value instanceof value_Value) {
+            this.register(value.subscribe((val) => {
+                this._element.style[name] = val;
+            }));
+        }
+        else {
+            this._element.style[name] = value;
+        }
+        return this;
+    }
+    class(className, active = true) {
+        if (active instanceof value_Value) {
+            this.register(active.subscribe((val) => {
+                if (val) {
+                    if (Array.isArray(className)) {
+                        this._element.classList.add(...className);
+                    }
+                    else {
+                        this._element.classList.add(className);
+                    }
+                }
+                else {
+                    if (Array.isArray(className)) {
+                        this._element.classList.remove(...className);
+                    }
+                    else {
+                        this._element.classList.remove(className);
+                    }
+                }
+            }));
+        }
+        else {
+            if (active) {
+                if (Array.isArray(className)) {
+                    this._element.classList.add(...className);
+                }
+                else {
+                    this._element.classList.add(className);
+                }
+            }
+            else {
+                if (Array.isArray(className)) {
+                    this._element.classList.remove(...className);
+                }
+                else {
+                    this._element.classList.remove(className);
+                }
+            }
+        }
+        return this;
+    }
+    on(eventType, listener, options) {
+        for (const [, event] of this._events.entries()) {
+            if (event.eventType === eventType && event.listener === listener) {
+                console.warn(`The event listener for ${eventType} is already registered on this element.`);
+                return this;
+            }
+        }
+        this._element.addEventListener(eventType, listener, options);
+        const dispose = createDisposeFn(() => {
+            this._element.removeEventListener(eventType, listener, options);
+        });
+        this.register(dispose);
+        this._events.set(dispose, { eventType, listener });
+        return this;
+    }
+    off(eventType, listener, options) {
+        this._element.removeEventListener(eventType, listener, options);
+        for (const [dispose, event] of this._events.entries()) {
+            if (event.eventType === eventType && event.listener === listener) {
+                this._events.delete(dispose);
+                this.unregister(dispose);
+                break;
+            }
+        }
+        return this;
+    }
+    datum(data) {
+        if (arguments.length === 0) {
+            return this._element.__datum__;
+        }
+        else {
+            this._element.__datum__ = data;
+            return this;
+        }
+    }
+    text(content) {
+        if (content instanceof value_Value) {
+            const textNode = document.createTextNode("");
+            this._element.appendChild(textNode);
+            this.register(content.subscribe((val) => {
+                textNode.textContent = String(val);
+            }));
+        }
+        else {
+            this._element.innerText = String(content);
+        }
+        return this;
+    }
+    html(content) {
+        this._element.innerHTML = content;
+        return this;
+    }
+    append(...children) {
+        for (const child of children) {
+            this._element.appendChild(child.element);
+        }
+        return this;
+    }
+    mount(parent) {
+        if (parent instanceof DOMNode) {
+            parent._element.appendChild(this._element);
+        }
+        else {
+            parent.appendChild(this._element);
+        }
+        return this;
+    }
+    get element() {
+        return this._element;
+    }
+}
+//# sourceMappingURL=dom.js.map
+;// ./packages/duct-tape/build/emitter.js
+
+class Emitter extends Disposable {
+    _emitterHandles;
+    constructor() {
+        super();
+        this._emitterHandles = {};
+    }
+    dispose() {
+        if (this.disposed)
+            return;
+        this._emitterHandles = {};
+        super.dispose();
+    }
+    on(name, callback, scope = this) {
+        this._addCallback(name, callback, scope, false);
+        return () => this.off(name, callback, scope);
+    }
+    once(name, callback, scope = this) {
+        this._addCallback(name, callback, scope, true);
+        return () => this.off(name, callback, scope);
+    }
+    off(name, callback, scope = this) {
+        const handlesByName = this._emitterHandles[name];
+        if (handlesByName) {
+            let i = handlesByName.length;
+            while (--i >= 0) {
+                if (handlesByName[i].callback === callback && handlesByName[i].scope === scope) {
+                    handlesByName.splice(i, 1);
+                }
+            }
+        }
+    }
+    emit(name, value) {
+        const handlesByName = this._emitterHandles[name];
+        if (!handlesByName) {
+            return;
+        }
+        for (const handle of handlesByName) {
+            handle.callback.call(handle.scope, value);
+            if (handle.once)
+                this.off(name, handle.callback, handle.scope);
+        }
+    }
+    _addCallback(name, callback, scope, once) {
+        let handlesByName = this._emitterHandles[name];
+        if (!handlesByName) {
+            handlesByName = this._emitterHandles[name] = [];
+        }
+        handlesByName.push({
+            callback,
+            scope,
+            once
+        });
+    }
+}
+/* harmony default export */ const emitter = ((/* unused pure expression or super */ null && (Emitter)));
+//# sourceMappingURL=emitter.js.map
 ;// ./packages/duct-tape/build/index.js
-var e={};function s(e){return!("object"!=typeof e||null===e||Array.isArray(e)||e instanceof RegExp||e instanceof Date)}function t(e){return e instanceof Function}function i(e){return void 0!==e}function r(e,s){return"object"==typeof e&&Object.hasOwn(e,s)}function n(e,i){return s(e)&&t(e[i])}function o(e){return void 0===e||""===e||null===e||0===e}function l(e){return!0===e||"true"===e||"yes"===e||"on"===e||"t"===e||1===e||"1"===e}function h(e){return!1===e||"false"===e||"no"===e||"off"===e||"f"===e||0===e||"0"===e}function a(e,...t){if(!t.length)return e;const i=t.shift();if(s(e)&&s(i))for(const t in i)s(i[t])?(e[t]||Object.assign(e,{[t]:{}}),a(e[t],i[t])):Object.assign(e,{[t]:i[t]});return a(e,...t)}e.d=(s,t)=>{for(var i in t)e.o(t,i)&&!e.o(s,i)&&Object.defineProperty(s,i,{enumerable:!0,get:t[i]})},e.o=(e,s)=>Object.prototype.hasOwnProperty.call(e,s);class c{_disposed;_disposables=new Map;constructor(){this._disposed=!1}dispose(){if(!this._disposed)try{const e=Array.from(this._disposables.entries()).reverse();for(const[,s]of e)try{s()}catch(e){console.error(e)}this._disposables.clear()}finally{this._disposed=!0}}get disposed(){return this._disposed}register(e){return this._disposables.has(e)?(console.warn(`Cannot register ${e?.constructor?.name??e}. This object is already registered.`),e):(s(e)?n(e,"dispose")?this._disposables.set(e,()=>e.dispose()):n(e,"destroy")?this._disposables.set(e,()=>e.destroy()):n(e,"remove")?this._disposables.set(e,()=>e.remove()):console.warn(`The object ${e?.constructor?.name??e} has an unknown release function!`):t(e)?this._disposables.set(e,e):console.warn(`Cannot register ${e}. This object does not have a release function!`),e)}unregister(e){this._disposables.has(e)?this._disposables.delete(e):console.warn("Object ${o} doesn't exist in register.")}}class u extends c{_emitterHandles;constructor(){super(),this._emitterHandles={}}dispose(){this.disposed||(this._emitterHandles={},super.dispose())}on(e,s,t=this){return this._addCallback(e,s,t,!1),()=>this.off(e,s,t)}once(e,s,t=this){return this._addCallback(e,s,t,!0),()=>this.off(e,s,t)}off(e,s,t=this){const i=this._emitterHandles[e];if(i){let e=i.length;for(;--e>=0;)i[e].callback===s&&i[e].scope===t&&i.splice(e,1)}}emit(e,s){const t=this._emitterHandles[e];if(t)for(const i of t)i.callback.call(i.scope,s),i.once&&this.off(e,i.callback,i.scope)}_addCallback(e,s,t,i){let r=this._emitterHandles[e];r||(r=this._emitterHandles[e]=[]),r.push({callback:s,scope:t,once:i})}}const d=u;class b extends d{equal(e){let s;s=e instanceof Function?e:s=>s===e;const t=new v(this,s);return t.on("afterUnsubscribe",()=>{0===t.subscribersLength&&t.dispose()}),t}notEqual(e){let s;s="string"==typeof e?s=>s!==e:s=>!e(s);const t=new v(this,s);return t.on("afterUnsubscribe",()=>{0===t.subscribersLength&&t.dispose()}),t}format(e){const s=new v(this,e);return s.on("afterUnsubscribe",()=>{0===s.subscribersLength&&s.dispose()}),s}mapBoolean(e,s){const t=new v(this,t=>!0===t?e:!1===t?s:void 0);return t.on("afterUnsubscribe",()=>{0===t.subscribersLength&&t.dispose()}),t}not(){const e=new v(this,e=>!e);return e.on("afterUnsubscribe",()=>{0===e.subscribersLength&&e.dispose()}),e}and(e){const s=new m(this,e,(e,s)=>!!e&&!!s);return s.on("afterUnsubscribe",()=>{0===s.subscribersLength&&s.dispose()}),s}or(e){const s=new m(this,e,(e,s)=>!!e||!!s);return s.on("afterUnsubscribe",()=>{0===s.subscribersLength&&s.dispose()}),s}}function p(e){return e instanceof b}class f extends b{listeners=[];value;initValue;prev;constructor(e){super(),this.value=e,this.initValue=e,this.prev=void 0}dispose(){this.disposed||(this.listeners.splice(0,this.listeners.length),super.dispose())}subscribe(e,s=this){const t={callback:e,scope:s};return this.listeners.push(t),this.deliveryValueToSubscriber(t,this.value,this.prev),()=>{this.listeners.splice(this.listeners.indexOf(t),1),this.emit("afterUnsubscribe",this)}}set(e){const s="function"==typeof e?e(this.get(),this.initValue):e;this.prev=this.get(),this.value!==s&&(Array.isArray(this.value)?this.value=[...s]:"object"==typeof this.value?this.value=a(this.value,s):this.value=s,this.deliveryValue(this.value,this.prev))}reinitAndSet(e){"object"==typeof e?this.set({...this.initValue,...e}):this.set(e)}get(){return Array.isArray(this.value)?[...this.value]:"object"==typeof this.value?a({},this.value):this.value}toString(){return void 0===this.value||null===this.value?"undefined":this.value.toString()}deliveryValue(e,s){for(const t of this.listeners)this.deliveryValueToSubscriber(t,e,s)}deliveryValueToSubscriber(e,s,t){e.callback.call(e.scope,s,t)}}class v extends b{listeners=[];watch;prev;value;transform;constructor(e,s){super(),this.watch=e,this.transform=s,this.value=this.transform(this.watch.get()),this.register(this.watch.subscribe(e=>{const s=this.transform(e);this.value!==s&&(this.prev=this.value,this.value=s,this.deliverValue(this.value,this.prev))}))}subscribe(e,s=this){const t={callback:e,scope:s};return this.listeners.push(t),this.deliverValueToSubscriber(t,this.value,this.prev),()=>{this.listeners.splice(this.listeners.indexOf(t),1),this.emit("afterUnsubscribe",void 0)}}get(){return this.value}toString(){return this.watch.toString()}get subscribersLength(){return this.listeners.length}deliverValue(e,s){for(const t of this.listeners)this.deliverValueToSubscriber(t,e,s)}deliverValueToSubscriber(e,s,t){e.callback.call(e.scope,s,t)}}class m extends b{listeners=[];watch1;watch2;prev;value;transform;constructor(e,s,t){super(),this.watch1=e,this.watch2=s,this.transform=t,this.value=this.transform(this.watch1.get(),this.watch2.get()),this.register(this.watch1.subscribe(e=>{const s=this.transform(e,this.watch2.get());this.value!==s&&(this.prev=this.value,this.value=s,this.deliverValue(this.value,this.prev))})),this.register(this.watch2.subscribe(e=>{const s=this.transform(this.watch1.get(),e);this.value!==s&&(this.prev=this.value,this.value=s,this.deliverValue(this.value,this.prev))}))}subscribe(e,s=this){const t={callback:e,scope:s};return this.listeners.push(t),this.deliverValueToSubscriber(t,this.value,this.prev),()=>{this.listeners.splice(this.listeners.indexOf(t),1),this.emit("afterUnsubscribe",void 0)}}get(){return this.value}toString(){return this.watch1.toString()+this.watch2.toString()}get subscribersLength(){return this.listeners.length}deliverValue(e,s){for(const t of this.listeners)this.deliverValueToSubscriber(t,e,s)}deliverValueToSubscriber(e,s,t){e.callback.call(e.scope,s,t)}dispose(){this.disposed||(this.listeners.splice(0,this.listeners.length),super.dispose())}}function g(e,s){const t=new _(e);return s instanceof c&&s.register(t),t}class _ extends c{_element;constructor(e){super();const s=e.split(":");if(1===s.length)this._element=document.createElement(e);else{if(2!==s.length)throw new Error("Invalid selector");{const e=s[0],t=s[1];this._element=document.createElementNS(e,t)}}}attr(e,s){return s instanceof b?this.register(s.subscribe(s=>{this._element.setAttribute(e,String(s))})):this._element.setAttribute(e,String(s)),this}property(e,s){return void 0===s?this._element[e]:(s instanceof b?this.register(s.subscribe(s=>{this._element[e]=s})):this._element[e]=s,this)}style(e,s){return s instanceof b?this.register(s.subscribe(s=>{this._element.style[e]=s})):this._element.style[e]=s,this}class(e,s=!0){return s instanceof b?this.register(s.subscribe(s=>{s?Array.isArray(e)?this._element.classList.add(...e):this._element.classList.add(e):Array.isArray(e)?this._element.classList.remove(...e):this._element.classList.remove(e)})):s?Array.isArray(e)?this._element.classList.add(...e):this._element.classList.add(e):Array.isArray(e)?this._element.classList.remove(...e):this._element.classList.remove(e),this}on(e,s,t){return this._element.addEventListener(e,s,t),this.register(()=>{this._element.removeEventListener(e,s,t)}),this}off(e,s,t){return this._element.removeEventListener(e,s,t),this}text(e){if(e instanceof b){const s=document.createTextNode("");this._element.appendChild(s),this.register(e.subscribe(e=>{s.textContent=String(e)}))}else this._element.innerText=String(e);return this}html(e){return this._element.innerHTML=e,this}append(...e){for(const s of e)this._element.appendChild(s.element);return this}mount(e){return e instanceof _?e._element.appendChild(this._element):e.appendChild(this._element),this}get element(){return this._element}}
+
+
+
+
+
+
+//# sourceMappingURL=index.js.map
 ;// ./src/widgets/widget.ts
 
-class Widget extends _ {
+class Widget extends DOMNode {
     _editor;
     constructor(editor) {
         super("div");
@@ -564,7 +1321,7 @@ class NumberWidget extends Widget {
         this._min = schema.min !== undefined ? schema.min : -Infinity;
         this._max = schema.max !== undefined ? schema.max : Infinity;
         const label = schema.label || key;
-        this._input = new _("input")
+        this._input = new DOMNode("input")
             .attr("type", "number")
             .style("display", "block")
             .style("marginBottom", "8px")
@@ -604,11 +1361,11 @@ class NumberWidget extends Widget {
             this._data[key] = value;
             this._editor.saveState();
         });
-        const labelNode = new _("label")
+        const labelNode = new DOMNode("label")
             .text(label)
             .style("display", "block")
             .style("marginBottom", "4px");
-        this._messageNode = new _("div")
+        this._messageNode = new DOMNode("div")
             .class("message")
             .style("color", "red")
             .style("fontSize", "12px")
@@ -631,7 +1388,7 @@ class ArrayWidget extends Widget {
         this._schema = schema;
         this._data = data;
         this.class("array-component");
-        this.append(this._itemsContainer = g("div", this)
+        this.append(this._itemsContainer = create("div", this)
             .class("items-container"));
         this.build();
     }
@@ -640,7 +1397,7 @@ class ArrayWidget extends Widget {
             return;
         }
         this._data.forEach((data, index) => {
-            const item = g("div").class("array-item");
+            const item = create("div").class("array-item");
             this._itemsContainer.append(item);
             if (this._schema.item.type === "object") {
                 item.append(new ObjectWidget(this._editor, `Element #${index + 1}`, this._schema.item, data));
@@ -666,14 +1423,14 @@ class StringWidget extends Widget {
         this.class("string-component");
         const label = schema.label || key;
         if (schema.enum) {
-            this._input = g("select", this)
+            this._input = create("select", this)
                 .style("display", "block")
                 .style("marginBottom", "8px")
                 .on("change", () => {
                 this._data[key] = this._input.property("value");
             });
             for (const [enumKey, enumLabel] of Object.entries(schema.enum)) {
-                const option = g("option", this._input)
+                const option = create("option", this._input)
                     .attr("value", enumKey)
                     .text(enumLabel);
                 if (this._data[key] === enumKey) {
@@ -683,7 +1440,7 @@ class StringWidget extends Widget {
             }
         }
         else {
-            this._input = g("input", this)
+            this._input = create("input", this)
                 .attr("type", "text")
                 .style("display", "block")
                 .style("marginBottom", "8px")
@@ -693,7 +1450,7 @@ class StringWidget extends Widget {
                 this._editor.saveState();
             });
         }
-        const labelNode = g("label", this)
+        const labelNode = create("label", this)
             .text(label)
             .style("display", "block")
             .style("marginBottom", "4px");
@@ -716,7 +1473,7 @@ class BooleanWidget extends Widget {
         this._data = data;
         this.class("boolean-component");
         const label = schema.label || key;
-        this._checkbox = new _("input")
+        this._checkbox = new DOMNode("input")
             .attr("type", "checkbox")
             .style("marginRight", "8px")
             .property("checked", !!this._data[key])
@@ -724,10 +1481,10 @@ class BooleanWidget extends Widget {
             this._data[key] = this._checkbox.property("checked");
             this._editor.saveState();
         });
-        const labelNode = new _("label")
+        const labelNode = new DOMNode("label")
             .style("cursor", "pointer")
             .append(this._checkbox)
-            .append(new _("span").text(label));
+            .append(new DOMNode("span").text(label));
         this.append(labelNode);
     }
 }
@@ -746,10 +1503,10 @@ class RefWidget extends Widget {
         this._data = data;
         this.class("string-component");
         const label = this._schema.label || key;
-        this._ref = new _("div")
+        this._ref = new DOMNode("div")
             .style("display", "block")
             .style("marginBottom", "8px");
-        const labelNode = new _("label")
+        const labelNode = new DOMNode("label")
             .text(label)
             .style("display", "block")
             .style("marginBottom", "4px");
@@ -882,26 +1639,32 @@ class ObjectWidget extends Widget {
     _data;
     _title;
     _content;
-    _active = new f(false);
+    _active = new ValueStore(false);
     constructor(editor, key, schema, data) {
         super(editor);
         this._schema = schema;
         this._data = data;
         this.class("object-component");
-        this.append(this._title = g("a", this)
+        this.append(this._title = create("a", this)
             .class("title")
             .class("active", this._active)
             // .text(this._data.label || key)
             .on("click", () => {
             this._active.set(!this._active.get());
         })
-            .append(g("i", this)
+            .append(create("i", this)
             .class("dropdown")
-            .class("icon"), g("h3", this)
-            .text(this._schema.label || key)), this._content = g("div", this)
+            .class("icon"), create("h3", this)
+            .text(this._schema.label || key)), this._content = create("div", this)
             .class("content")
             .class("active", this._active));
         this.build();
+    }
+    dispose() {
+        if (this._disposed)
+            return;
+        this._active.dispose();
+        super.dispose();
     }
     build() {
         for (const [key, prop] of Object.entries(this._schema.properties)) {
@@ -940,11 +1703,12 @@ class ObjectWidget extends Widget {
 ;// ./src/editor.ts
 
 
-class Editor extends c {
+class Editor extends Disposable {
     _container;
     _data = {};
     _api;
     _types = {};
+    _rootWidget = null;
     constructor(container, api) {
         super();
         this._container = container;
@@ -958,6 +1722,11 @@ class Editor extends c {
         this._api.triggerStateSave();
     }
     async run(data) {
+        if (this._rootWidget) {
+            this.unregister(this._rootWidget);
+            this._rootWidget.dispose();
+            this._rootWidget = null;
+        }
         this._data = data;
         return new Promise((resolve) => {
             console.log("Editor running...");
@@ -969,7 +1738,7 @@ class Editor extends c {
                     this._types = schema.definitions;
                     this.replaceDefinitions(propertiesSchema);
                 }
-                this.register(new ObjectWidget(this, "Root", propertiesSchema, this._data).mount(this._container));
+                this._rootWidget = this.register(new ObjectWidget(this, "Root", propertiesSchema, this._data).mount(this._container));
                 resolve();
             }).catch((error) => {
                 console.error("Error loading schema:", error);
@@ -1053,10 +1822,9 @@ var update = injectStylesIntoStyleTag_default()(styles/* default */.A, options);
 // [ ] Czy setState jest wywoływany zawsze?
 // [ ] Czy addEditorTab można wywołać z setState?
 // [ ] Co dzieje się z defaultData jeżeli zostanie coś dodane/usunięte
-function create() {
+function main_create() {
     let _api = null;
     let _data = {};
-    let _running = false;
     let editor = null;
     return {
         init(api, options) {
@@ -1080,14 +1848,9 @@ function create() {
             }
         },
         setState(stateData) {
-            if (_running) {
-                console.warn("setState called while editor is already running. This may lead to inconsistent state.");
-                return;
-            }
             if (editor) {
                 _data = stateData;
                 editor.run(_data);
-                _running = true;
             }
             else {
                 console.warn("Editor instance is not initialized yet.");
@@ -1098,56 +1861,7 @@ function create() {
         }
     };
 }
-/* harmony default export */ const main = (create);
-// let _data = {
-//     extraValue: 42,
-//     message: "Hello, Editor!"
-// };
-// let _api = null;
-// let _input = null;
-// return function () {
-//     return {
-//         init: function (api, options) {
-//             _api = api;
-//             _api.addEditorTab("tab01", "Edycja");
-//         },
-//         destroy: function () {},
-//         initTab(tab, container, api) {
-//             // Initialize the tab content
-//             console.log("Initializing tab:", tab);
-//             if (tab == "tab01") {
-//                 _input = document.createElement("input");
-//                 _input.type = "text";
-//                 _input.value = _data.message;
-//                 _input.addEventListener("input", () => {
-//                     _data.message = _input.value;
-//                 });
-//                 _input.addEventListener("change", () => {
-//                     _api.triggerStateSave().then(() => {
-//                         console.log("State saved from editor tab.");
-//                     });
-//                 });
-//                 container.appendChild(_input);
-//             }
-//         },
-//         destroyTab(tab, container) {
-//             // Clean up the tab content
-//             console.log("Destroying tab:", tab);
-//             if (tab == "tab01" && _input) {
-//                 container.removeChild(_input);
-//                 _input = null;
-//             }
-//         },
-//         setState(stateData) {
-//             console.log("Setting state in editor:", stateData);
-//             _data = { ..._data, ...stateData };
-//         },
-//         getState() {
-//             console.log("Getting state from editor");
-//             return _data;
-//         }
-//     };
-// };
+/* harmony default export */ const main = (main_create);
 
 /******/ 	return __webpack_exports__;
 /******/ })()

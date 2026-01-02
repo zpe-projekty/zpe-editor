@@ -44,6 +44,12 @@ export class ObjectWidget extends Widget {
         this.build();
     }
 
+    override dispose(): void {
+        if (this._disposed) return;
+        this._active.dispose();
+        super.dispose();
+    }
+
     build(): void {
         for (const [key, prop] of Object.entries(this._schema.properties)) {
             if (this._data[key] === undefined && prop.type !== "ref") {

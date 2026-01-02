@@ -5,6 +5,7 @@ type StateData = Record<string, any>;
 interface EngineData {
     editor: {
         defaultData: StateData;
+        demoData: StateData;
     };
 }
 
@@ -49,9 +50,10 @@ const _tabs = new Map<string, TabData>();
 let _firstTabId: string | null = null;
 let _engineData = {
     editor: {
-        defaultData: {}
-    }
-}
+        defaultData: {},
+        demoData: {},
+    },
+} as EngineData;
 
 window.define = function define(fn: () => any) {
     const entry = fn().default() as EngineEditor;
@@ -74,7 +76,15 @@ window.define = function define(fn: () => any) {
                 });
                 container.style.display = "block";
             };
-            document.getElementById("emulator-tabs")?.appendChild(tabButton);
+            // document.getElementById("emulator-tabs")?.appendChild(tabButton);
+
+            const demoButton = document.createElement("button");
+            demoButton.innerText = `DEMO`;
+            demoButton.classList.add("demo-button");
+            demoButton.onclick = () => {
+                entry.setState(_engineData.editor.demoData);
+            };
+            document.getElementById("emulator-tabs")?.appendChild(demoButton);
 
             _tabs.set(tabId, { id: tabId, name, container });
 

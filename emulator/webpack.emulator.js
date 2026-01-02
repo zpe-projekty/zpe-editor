@@ -60,7 +60,7 @@ module.exports = function (env, argv) {
                         {
                             loader: "css-loader",
                             options: {
-                                modules: "local"
+                                // modules: "local"
                             }
                         }
                     ]
